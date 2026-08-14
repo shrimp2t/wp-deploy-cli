@@ -1,0 +1,39 @@
+{
+  "name": "freemium-deploy",
+  "version": "1.0.0",
+  "description": "Build Free and Pro (premium) distributables of a WordPress theme/plugin from a single source using inline premium markers. CLI + library.",
+  "type": "module",
+  "bin": {
+    "deploy-version": "bin/cli.js"
+  },
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "wordpress",
+    "theme",
+    "plugin",
+    "freemium",
+    "deploy",
+    "build",
+    "premium",
+    "edd"
+  ],
+  "author": "",
+  "license": "GPL-2.0-or-later",
+  "dependencies": {
+    "archiver": "^7.0.1"
+  }
+}
