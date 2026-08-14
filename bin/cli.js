@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from '../src/index.js';
 import { readChangelog } from '../src/meta.js';
+import { loadEnv, envBool } from '../src/env.js';
 import * as gh from '../src/github.js';
 import { syncEdd } from '../src/edd.js';
 
@@ -25,13 +26,22 @@ function parseArgs(argv) {
   return args;
 }
 
+// A --flag=value wins; otherwise fall back to the .env / environment variable.
+function pick(argVal, envVal) {
+  if (argVal === undefined) return envVal || undefined;
+  if (argVal === true) return true;            // bare flag
+  return String(argVal);
+}
+
 const HELP = `freemium-deploy — build Free + Pro (premium) distributables from one source.
 
 Usage:
   cd path/to/theme_or_plugin
   deploy-version --path=.
 
-  deploy-version --path=/path/to/source [options]
+Config: a .env file in the current directory is auto-loaded and used as defaults
+(GITHUB_TOKEN, GITHUB_REPO, GITHUB_TAG, GITHUB_PUBLISH, EDD_ENDPOINT, EDD_TOKEN,
+EDD_DOWNLOAD_ID, EDD_DOWNLOAD_FREE_ID, OUT_DIR). See .env.example. Flags override.
 
 Build options:
   --path=DIR            Source theme/plugin directory (default: current dir ".")
@@ -41,12 +51,12 @@ Build options:
   --no-zip              Emit unzipped folders only
   --keep                Keep the unzipped build folders (in addition to zips)
 
-GitHub (optional; needs GITHUB_TOKEN or --github-token):
+GitHub (needs GITHUB_TOKEN or --github-token):
   --github-repo=OWNER/NAME   Fetch source from a release instead of --path
-  --github-tag=TAG           Release tag to build (e.g. v1.2.3); required with --github-repo
+  --github-tag=TAG           Release tag to build (e.g. v1.2.3)
   --github-publish           Upload the built free/pro zips as assets of that release
 
-EDD sync (optional; needs a companion endpoint — see README):
+EDD sync (needs a companion endpoint — see README):
   --edd-endpoint=URL         Receiver endpoint on the EDD site
   --edd-token=SECRET         Shared secret (sent as Bearer)
   --edd-download-id=N        Pro download id
@@ -68,19 +78,35 @@ async function main() {
     return;
   }
 
+  // Load .env from the current working directory (real env vars still win).
+  loadEnv(process.cwd());
+  const env = process.env;
+
+  // Resolve effective settings: CLI flag > .env / environment.
+  const cfg = {
+    githubRepo: pick(args['github-repo'], env.GITHUB_REPO),
+    githubTag: pick(args['github-tag'], env.GITHUB_TAG),
+    githubPublish: args['github-publish'] === true || envBool(env.GITHUB_PUBLISH),
+    githubToken: gh.resolveToken(args['github-token'] === true ? '' : args['github-token']),
+    eddEndpoint: pick(args['edd-endpoint'], env.EDD_ENDPOINT),
+    eddToken: pick(args['edd-token'], env.EDD_TOKEN),
+    eddDownloadId: pick(args['edd-download-id'], env.EDD_DOWNLOAD_ID),
+    eddDownloadFreeId: pick(args['edd-download-free-id'], env.EDD_DOWNLOAD_FREE_ID),
+    out: pick(args.out, env.OUT_DIR),
+  };
+
   const log = (m) => process.stdout.write(`${m}\n`);
   const dryRun = !!args['dry-run'];
 
   // --- resolve source (local dir or GitHub release) ---------------------------
   let sourceDir = args.path ? String(args.path) : '.';
   let cleanupSource = null;
-  const token = gh.resolveToken(args['github-token'] === true ? '' : args['github-token']);
 
-  if (args['github-repo']) {
-    if (!args['github-tag']) throw new Error('--github-tag is required with --github-repo');
-    if (!token) throw new Error('GitHub access needs a token (GITHUB_TOKEN or --github-token=...)');
-    log(`↓ fetching ${args['github-repo']}@${args['github-tag']} source`);
-    sourceDir = await gh.downloadSource(String(args['github-repo']), String(args['github-tag']), token);
+  if (cfg.githubRepo) {
+    if (!cfg.githubTag) throw new Error('A release tag is required (--github-tag or GITHUB_TAG)');
+    if (!cfg.githubToken) throw new Error('GitHub access needs a token (GITHUB_TOKEN or --github-token=...)');
+    log(`↓ fetching ${cfg.githubRepo}@${cfg.githubTag} source`);
+    sourceDir = await gh.downloadSource(cfg.githubRepo, cfg.githubTag, cfg.githubToken);
     cleanupSource = path.dirname(sourceDir);
   }
 
@@ -92,7 +118,7 @@ async function main() {
   // --- build ------------------------------------------------------------------
   const result = await build({
     path: sourceDir,
-    out: args.out ? String(args.out) : undefined,
+    out: cfg.out,
     variants,
     zip: !args['no-zip'],
     keep: !!args.keep,
@@ -109,26 +135,26 @@ async function main() {
   }
 
   // --- GitHub publish ---------------------------------------------------------
-  if (args['github-publish']) {
-    if (!args['github-repo'] || !args['github-tag']) {
-      throw new Error('--github-publish requires --github-repo and --github-tag');
+  if (cfg.githubPublish) {
+    if (!cfg.githubRepo || !cfg.githubTag) {
+      throw new Error('Publishing needs a repo and tag (--github-repo/--github-tag or GITHUB_REPO/GITHUB_TAG)');
     }
-    if (!token) throw new Error('--github-publish needs a token');
+    if (!cfg.githubToken) throw new Error('Publishing needs a GitHub token');
     log('');
-    const release = await gh.getReleaseByTag(String(args['github-repo']), String(args['github-tag']), token);
-    release._repo = String(args['github-repo']);
+    const release = await gh.getReleaseByTag(cfg.githubRepo, cfg.githubTag, cfg.githubToken);
+    release._repo = cfg.githubRepo;
     for (const v of variants) {
       const e = result[v];
       if (!e || !e.zip) continue;
-      if (dryRun) { log(`[dry-run] would upload ${path.basename(e.zip)} to ${release._repo}@${args['github-tag']}`); continue; }
-      const asset = await gh.uploadReleaseAsset(release, e.zip, token);
+      if (dryRun) { log(`[dry-run] would upload ${path.basename(e.zip)} to ${release._repo}@${cfg.githubTag}`); continue; }
+      const asset = await gh.uploadReleaseAsset(release, e.zip, cfg.githubToken);
       e.assetUrl = asset.browser_download_url;
       log(`↑ uploaded ${path.basename(e.zip)} -> ${asset.browser_download_url}`);
     }
   }
 
   // --- EDD sync ---------------------------------------------------------------
-  if (args['edd-endpoint'] || dryRun && args['edd-download-id']) {
+  if (cfg.eddEndpoint || (dryRun && cfg.eddDownloadId)) {
     const files = variants.map((v) => result[v]).filter(Boolean).map((e) => ({
       variant: e === result.free ? 'free' : 'premium',
       name: e.zip ? path.basename(e.zip) : e.slug,
@@ -137,10 +163,10 @@ async function main() {
     }));
     log('');
     const eddRes = await syncEdd({
-      endpoint: args['edd-endpoint'] ? String(args['edd-endpoint']) : '',
-      token: args['edd-token'] ? String(args['edd-token']) : undefined,
-      downloadId: args['edd-download-id'],
-      downloadFreeId: args['edd-download-free-id'],
+      endpoint: cfg.eddEndpoint || '',
+      token: cfg.eddToken,
+      downloadId: cfg.eddDownloadId,
+      downloadFreeId: cfg.eddDownloadFreeId,
       version: result.version,
       changelog: readChangelog(result.source),
       files,

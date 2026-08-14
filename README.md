@@ -85,6 +85,27 @@ Fully compatible with the original plugin's format:
 
 Version is read from `style.css` (theme) or the plugin header, and used in the zip names.
 
+## Configuration (`.env`)
+
+Store the site/credentials you deploy to in a `.env` file — it's auto-loaded from the
+current directory and used as defaults, so you can just run `deploy-version`:
+
+```bash
+cp .env.example .env    # then fill in your values
+```
+
+| Variable | Used for |
+|---|---|
+| `GITHUB_TOKEN` | GitHub auth (release source + asset upload) |
+| `GITHUB_REPO` / `GITHUB_TAG` | default repo / tag to build from |
+| `GITHUB_PUBLISH` | `true` to upload built zips as release assets |
+| `EDD_ENDPOINT` / `EDD_TOKEN` | the EDD site to sync to, and its shared secret |
+| `EDD_DOWNLOAD_ID` / `EDD_DOWNLOAD_FREE_ID` | pro / free download ids to update |
+| `OUT_DIR` | default output directory |
+
+Precedence: **CLI flag > `.env` / environment variable**. Real environment variables win
+over the file (handy in CI). Keep `.env` out of git — only `.env.example` is committed.
+
 ## CLI
 
 ```
