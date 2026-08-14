@@ -162,27 +162,39 @@ const res = await build({ path: '.', variants: ['free', 'premium'] });
 new Finder({ variant: 'free', key: 'ft_is__premium' }).deployPhp(src);
 ```
 
-## EDD sync
+## EDD sync (via existing WordPress REST — recommended)
 
-A standalone Node process cannot write WP/EDD post meta directly. `--edd-endpoint` POSTs
-a signed JSON payload to a small companion REST route you add on the EDD site, which then
-updates `edd_download_files`, `_edd_sl_version`, and `_edd_sl_changelog`. Payload shape:
+No custom endpoint. EDD already registers the `download` post type with
+`show_in_rest`, so WP core's own controller serves:
 
-```json
-{
-  "version": "1.3.7",
-  "changelog": "…",
-  "download_id": 123,
-  "download_free_id": 456,
-  "files": [
-    { "variant": "free", "name": "easymag-free-v1.3.7.zip", "url": "https://…", "size": 911360 },
-    { "variant": "premium", "name": "easymag-pro-v1.3.7.zip", "url": "https://…", "size": 984064 }
-  ]
-}
+```
+POST /wp-json/wp/v2/edd-downloads/<id>
 ```
 
-Send `Authorization: Bearer <--edd-token>` and verify it on the receiver. Use `--dry-run`
-to print the payload without sending.
+The tool writes the Software Licensing fields (`_edd_sl_version`, `_edd_sl_changelog`)
+there, authenticating with **Application Passwords** (WP core ≥ 5.6 — no plugin):
+
+```bash
+deploy-version --path=. \
+  --wp-url=https://shop.example.com --wp-user=admin \
+  --wp-app-password="xxxx xxxx xxxx xxxx xxxx xxxx" \
+  --download-id=42 --download-free-id=43
+```
+
+One-time enabler: WP/EDD deliberately do **not** expose those SL meta keys to REST
+(they are protected `_`-prefixed meta). Copy
+`examples/mu-plugin-register-edd-sl-meta.php` into `wp-content/mu-plugins/` once — it
+registers those **existing** fields for the **existing** endpoint (no
+`register_rest_route`, no controller, no new URL), gated by the `edit_post` capability.
+
+Use `--dry-run` to print the exact requests without sending them.
+
+### Fallback: custom companion endpoint
+
+If you'd rather not touch the site at all via REST, `--edd-endpoint=URL` POSTs a signed
+JSON payload (version, changelog, files) to your own receiver instead — see
+`src/edd.js`. A truly zero-code alternative is WP-CLI:
+`wp post meta update <id> _edd_sl_version <ver>`.
 
 ## Differences from the original plugin
 

@@ -7,6 +7,7 @@ import { readChangelog } from '../src/meta.js';
 import { loadEnv, envBool } from '../src/env.js';
 import * as gh from '../src/github.js';
 import { syncEdd } from '../src/edd.js';
+import { syncViaWpRest } from '../src/wp.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -39,9 +40,8 @@ Usage:
   cd path/to/theme_or_plugin
   deploy-version --path=.
 
-Config: a .env file in the current directory is auto-loaded and used as defaults
-(GITHUB_TOKEN, GITHUB_REPO, GITHUB_TAG, GITHUB_PUBLISH, EDD_ENDPOINT, EDD_TOKEN,
-EDD_DOWNLOAD_ID, EDD_DOWNLOAD_FREE_ID, OUT_DIR). See .env.example. Flags override.
+Config: a .env file in the current directory is auto-loaded and used as defaults.
+See .env.example. Flags override .env; real environment variables win in CI.
 
 Build options:
   --path=DIR            Source theme/plugin directory (default: current dir ".")
@@ -56,11 +56,18 @@ GitHub (needs GITHUB_TOKEN or --github-token):
   --github-tag=TAG           Release tag to build (e.g. v1.2.3)
   --github-publish           Upload the built free/pro zips as assets of that release
 
-EDD sync (needs a companion endpoint — see README):
-  --edd-endpoint=URL         Receiver endpoint on the EDD site
-  --edd-token=SECRET         Shared secret (sent as Bearer)
-  --edd-download-id=N        Pro download id
-  --edd-download-free-id=N   Free download id
+EDD sync via WordPress core REST (existing /wp-json/wp/v2/edd-downloads endpoint):
+  --wp-url=URL               EDD site URL
+  --wp-user=USER             WP username
+  --wp-app-password=PASS     Application Password (WP core >= 5.6)
+  --wp-rest-base=BASE        REST base (default: edd-downloads)
+  --download-id=N            Pro download id
+  --download-free-id=N       Free download id
+  (writes _edd_sl_version + _edd_sl_changelog; needs the tiny meta-registration
+   mu-plugin from examples/ — it enables those existing fields, adds no new route)
+
+EDD sync via custom endpoint (fallback):
+  --edd-endpoint=URL --edd-token=SECRET
 
 Misc:
   --dry-run             Print what would happen; do not publish/sync
@@ -90,8 +97,13 @@ async function main() {
     githubToken: gh.resolveToken(args['github-token'] === true ? '' : args['github-token']),
     eddEndpoint: pick(args['edd-endpoint'], env.EDD_ENDPOINT),
     eddToken: pick(args['edd-token'], env.EDD_TOKEN),
-    eddDownloadId: pick(args['edd-download-id'], env.EDD_DOWNLOAD_ID),
-    eddDownloadFreeId: pick(args['edd-download-free-id'], env.EDD_DOWNLOAD_FREE_ID),
+    downloadId: pick(args['download-id'], env.EDD_DOWNLOAD_ID),
+    downloadFreeId: pick(args['download-free-id'], env.EDD_DOWNLOAD_FREE_ID),
+    // WordPress core REST (Application Passwords) — the "existing API" path.
+    wpUrl: pick(args['wp-url'], env.WP_URL),
+    wpUser: pick(args['wp-user'], env.WP_USER),
+    wpAppPassword: pick(args['wp-app-password'], env.WP_APP_PASSWORD),
+    wpRestBase: pick(args['wp-rest-base'], env.WP_REST_BASE) || 'edd-downloads',
     out: pick(args.out, env.OUT_DIR),
   };
 
@@ -153,22 +165,45 @@ async function main() {
     }
   }
 
-  // --- EDD sync ---------------------------------------------------------------
-  if (cfg.eddEndpoint || (dryRun && cfg.eddDownloadId)) {
-    const files = variants.map((v) => result[v]).filter(Boolean).map((e) => ({
-      variant: e === result.free ? 'free' : 'premium',
-      name: e.zip ? path.basename(e.zip) : e.slug,
-      url: e.assetUrl,
-      path: e.zip,
-    }));
+  // --- EDD / WordPress sync ---------------------------------------------------
+  const files = variants.map((v) => result[v]).filter(Boolean).map((e) => ({
+    variant: e === result.free ? 'free' : 'premium',
+    name: e.zip ? path.basename(e.zip) : e.slug,
+    url: e.assetUrl,
+    path: e.zip,
+  }));
+  const changelog = readChangelog(result.source);
+
+  // Preferred: WordPress core REST (existing /wp-json/wp/v2/edd-downloads endpoint).
+  if (cfg.wpUrl) {
+    if (!cfg.wpUser || !cfg.wpAppPassword) {
+      throw new Error('WP REST sync needs WP_USER and WP_APP_PASSWORD (or --wp-user/--wp-app-password)');
+    }
+    log('');
+    const res = await syncViaWpRest({
+      baseUrl: cfg.wpUrl,
+      restBase: cfg.wpRestBase,
+      user: cfg.wpUser,
+      appPassword: cfg.wpAppPassword,
+      downloadId: cfg.downloadId,
+      downloadFreeId: cfg.downloadFreeId,
+      version: result.version,
+      changelog,
+      files,
+      dryRun,
+    });
+    log(dryRun ? '[dry-run] WP REST requests prepared' : `↔ WP REST sync done (${res.length} download(s))`);
+    if (dryRun) log(JSON.stringify(res, null, 2));
+  } else if (cfg.eddEndpoint || (dryRun && cfg.downloadId)) {
+    // Fallback: custom companion endpoint.
     log('');
     const eddRes = await syncEdd({
       endpoint: cfg.eddEndpoint || '',
       token: cfg.eddToken,
-      downloadId: cfg.eddDownloadId,
-      downloadFreeId: cfg.eddDownloadFreeId,
+      downloadId: cfg.downloadId,
+      downloadFreeId: cfg.downloadFreeId,
       version: result.version,
-      changelog: readChangelog(result.source),
+      changelog,
       files,
       dryRun,
     });
