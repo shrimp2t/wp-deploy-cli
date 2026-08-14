@@ -189,12 +189,28 @@ registers those **existing** fields for the **existing** endpoint (no
 
 Use `--dry-run` to print the exact requests without sending them.
 
-### Fallback: custom companion endpoint
+## EDD sync via WP-CLI (zero site-code — no plugin, no mu-plugin)
 
-If you'd rather not touch the site at all via REST, `--edd-endpoint=URL` POSTs a signed
-JSON payload (version, changelog, files) to your own receiver instead — see
-`src/edd.js`. A truly zero-code alternative is WP-CLI:
-`wp post meta update <id> _edd_sl_version <ver>`.
+Because core REST blocks protected meta, the simplest way to actually persist the SL
+version/changelog with **no site-side code at all** is the existing WP-CLI, which the
+tool can drive for you:
+
+```bash
+deploy-version --path=. \
+  --wp-cli="studio wp" --wp-path=/path/to/site \
+  --download-id=42 --download-free-id=43
+# runs: <cmd> post meta update <id> _edd_sl_version <ver>   (and _edd_sl_changelog)
+```
+
+`--wp-cli` defaults the command to `wp`; pass `--wp-cli="studio wp"` for WordPress Studio.
+`--wp-path` sets the working directory so Studio/WP-CLI targets the right site. Values are
+passed as argv (no shell), so multiline changelogs are safe. This path was verified
+end-to-end against a live site (`_edd_sl_version` + `_edd_sl_changelog` written and read back).
+
+## Fallback: custom companion endpoint
+
+`--edd-endpoint=URL` POSTs a signed JSON payload (version, changelog, files) to your own
+receiver instead — see `src/edd.js`.
 
 ## Differences from the original plugin
 

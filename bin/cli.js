@@ -8,6 +8,7 @@ import { loadEnv, envBool } from '../src/env.js';
 import * as gh from '../src/github.js';
 import { syncEdd } from '../src/edd.js';
 import { syncViaWpRest } from '../src/wp.js';
+import { syncViaWpCli } from '../src/wpcli.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -55,6 +56,12 @@ GitHub (needs GITHUB_TOKEN or --github-token):
   --github-repo=OWNER/NAME   Fetch source from a release instead of --path
   --github-tag=TAG           Release tag to build (e.g. v1.2.3)
   --github-publish           Upload the built free/pro zips as assets of that release
+
+EDD sync via WP-CLI (zero site-code; writes protected SL meta directly):
+  --wp-cli[=CMD]             Enable; CMD is the base command (default "wp", or "studio wp")
+  --wp-path=DIR              Run WP-CLI from this site dir (Studio auto-detects the site)
+  --download-id=N            Pro download id
+  --download-free-id=N       Free download id
 
 EDD sync via WordPress core REST (existing /wp-json/wp/v2/edd-downloads endpoint):
   --wp-url=URL               EDD site URL
@@ -104,6 +111,10 @@ async function main() {
     wpUser: pick(args['wp-user'], env.WP_USER),
     wpAppPassword: pick(args['wp-app-password'], env.WP_APP_PASSWORD),
     wpRestBase: pick(args['wp-rest-base'], env.WP_REST_BASE) || 'edd-downloads',
+    // WP-CLI (zero site-code) path — can write protected SL meta directly.
+    wpCli: args['wp-cli'] !== undefined || envBool(env.WP_CLI),
+    wpCliCommand: (typeof args['wp-cli'] === 'string' ? args['wp-cli'] : undefined) || env.WP_CLI_COMMAND || 'wp',
+    wpPath: pick(args['wp-path'], env.WP_PATH),
     out: pick(args.out, env.OUT_DIR),
   };
 
@@ -174,8 +185,22 @@ async function main() {
   }));
   const changelog = readChangelog(result.source);
 
-  // Preferred: WordPress core REST (existing /wp-json/wp/v2/edd-downloads endpoint).
-  if (cfg.wpUrl) {
+  // Zero site-code: WP-CLI (writes protected SL meta directly; no plugin, no REST registration).
+  if (cfg.wpCli) {
+    log('');
+    const res = syncViaWpCli({
+      command: cfg.wpCliCommand,
+      cwd: cfg.wpPath,
+      downloadId: cfg.downloadId,
+      downloadFreeId: cfg.downloadFreeId,
+      version: result.version,
+      changelog,
+      dryRun,
+    });
+    log(dryRun ? '[dry-run] WP-CLI commands prepared' : `↔ WP-CLI sync done (${res.length} download(s))`);
+    if (dryRun) log(JSON.stringify(res, null, 2));
+  } else if (cfg.wpUrl) {
+    // WordPress core REST (existing /wp-json/wp/v2/edd-downloads endpoint).
     if (!cfg.wpUser || !cfg.wpAppPassword) {
       throw new Error('WP REST sync needs WP_USER and WP_APP_PASSWORD (or --wp-user/--wp-app-password)');
     }
