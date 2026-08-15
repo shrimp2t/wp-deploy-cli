@@ -229,8 +229,8 @@ download's file**, plus the SL version/changelog — in one call.
 
 1. Install `wordpress-plugin/wp-deploy-endpoint.php` as a normal plugin on the EDD
    site and activate it. It registers `POST /wp-json/wp-deploy/v1/download`.
-2. Authenticate with either an Application Password or a shared token
-   (`define( 'FD_API_TOKEN', '…' )` in wp-config, or the `fd_api_token` filter).
+2. Authenticate with a WordPress **Application Password** (Users → Profile →
+   Application Passwords), passed as `--api-user` + `--api-app-password`.
 
 ```bash
 deploy-version --path=. \

@@ -64,9 +64,9 @@ On the EDD site:
 
 1. Install **`wordpress-plugin/wp-deploy-endpoint.php`** as a normal plugin and activate it.
    It adds `POST /wp-json/wp-deploy/v1/download`.
-2. Pick an auth method:
-   - **Shared token** — add to `wp-config.php`: `define( 'FD_API_TOKEN', '<long-secret>' );`
-   - **Application Password** — Users → Profile → Application Passwords (WP ≥ 5.6).
+2. Create a **WordPress Application Password** for a user who can edit downloads:
+   Users → Profile → Application Passwords (WP ≥ 5.6). Use it as `FD_API_USER` +
+   `FD_API_APP_PASSWORD` below.
 3. Create the **pro** download (and a free one if you sell/track it), then note their IDs
    (Downloads list → hover a product → the `post=<id>` in the edit link).
 
@@ -83,7 +83,8 @@ auto-loaded). Minimal shape:
 
 ```dotenv
 FD_API_URL=https://shop.example.com/wp-json/wp-deploy/v1/download
-FD_API_TOKEN=<long-secret>
+FD_API_USER=admin
+FD_API_APP_PASSWORD=xxxx xxxx xxxx xxxx xxxx xxxx
 EDD_DOWNLOAD_ID=42
 
 SVN_SLUG=my-theme
