@@ -10,6 +10,24 @@ export { Finder } from './finder.js';
 export { loadConfig } from './config.js';
 export { buildVariant } from './deploy.js';
 
+/**
+ * Build a single variant into `dir/<slug>` and return its location + metadata.
+ * Used by the SVN deploy step (which needs the built files, not a zip).
+ */
+export function buildVariantToDir({ path: srcPath, variant, dir }) {
+  const sourceDir = path.resolve(srcPath);
+  const config = loadConfig(sourceDir);
+  const type = detectType(sourceDir, config.type);
+  const version = readVersion(sourceDir, type);
+  const displayName = readName(sourceDir, type);
+  const baseSlug = config.name || slugify(displayName) || path.basename(sourceDir);
+  const proSlug = config.premium_name || `${baseSlug}-${config.premium_suffix || 'premium'}`;
+  const slug = variant === 'free' ? baseSlug : proSlug;
+  const itemDir = path.join(dir, slug);
+  buildVariant({ sourceDir, destItemDir: itemDir, variant, config });
+  return { dir: itemDir, slug, type, version };
+}
+
 function slugify(s) {
   return String(s).toLowerCase().trim()
     .replace(/[^a-z0-9]+/g, '-')

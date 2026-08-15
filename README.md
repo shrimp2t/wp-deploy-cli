@@ -203,6 +203,21 @@ registers those **existing** fields for the **existing** endpoint (no
 
 Use `--dry-run` to print the exact requests without sending them.
 
+## Deploy the free build to WordPress.org SVN
+
+Add `--svn` to publish the **free** variant to the wp.org SVN repo (plugins use
+`trunk` + `tags/<version>`; themes get a `<version>/` folder). Follows the
+FameThemes/10up deploy flow (checkout → rsync → `svn add`/`rm` → `svn commit`).
+
+```bash
+deploy-version --path=. --svn \
+  --svn-slug=my-theme --svn-user=wporg_user --svn-password="$WPORG_PASS"
+```
+
+Needs `svn` and `rsync` on PATH. Credentials come from `--svn-user`/`--svn-password`
+(or `SVN_USER`/`SVN_PASSWORD`) and are forwarded to svn, never stored. Use `--dry-run`
+to print the svn commands without committing, and `--svn-no-tag` to skip tagging.
+
 ## EDD sync via the companion plugin API (upload file + set download file)
 
 This is the full-featured path: it **uploads the built zip** and **sets it as the EDD

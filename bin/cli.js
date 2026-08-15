@@ -2,7 +2,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { build } from '../src/index.js';
+import fsx from 'node:fs';
+import osx from 'node:os';
+import { build, buildVariantToDir } from '../src/index.js';
+import { deployToSvn } from '../src/svn.js';
 import { readChangelog } from '../src/meta.js';
 import { loadEnv, envBool } from '../src/env.js';
 import * as gh from '../src/github.js';
@@ -52,6 +55,15 @@ Build options:
   --pro-only            Build only the premium variant
   --no-zip              Emit unzipped folders only
   --keep                Keep the unzipped build folders (in addition to zips)
+
+WordPress.org SVN (deploy the FREE build to plugins/themes SVN):
+  --svn                      Enable SVN deploy of the free variant
+  --svn-slug=SLUG            wp.org slug (default: the free build slug)
+  --svn-user=USER            wp.org username        (or SVN_USER)
+  --svn-password=PASS        wp.org password        (or SVN_PASSWORD; never stored)
+  --svn-url=URL              Override the SVN URL
+  --svn-message=MSG          Commit message (default: "Release <version>")
+  --svn-no-tag               (plugins) skip creating tags/<version>
 
 GitHub (needs GITHUB_TOKEN or --github-token):
   --github-repo=OWNER/NAME   Fetch source from a release instead of --path
@@ -124,6 +136,14 @@ async function main() {
     wpCli: args['wp-cli'] !== undefined || envBool(env.WP_CLI),
     wpCliCommand: (typeof args['wp-cli'] === 'string' ? args['wp-cli'] : undefined) || env.WP_CLI_COMMAND || 'wp',
     wpPath: pick(args['wp-path'], env.WP_PATH),
+    // WordPress.org SVN deploy of the FREE build.
+    svn: !!args.svn || envBool(env.SVN),
+    svnSlug: pick(args['svn-slug'], env.SVN_SLUG),
+    svnUser: pick(args['svn-user'], env.SVN_USER),
+    svnPassword: pick(args['svn-password'], env.SVN_PASSWORD),
+    svnUrl: pick(args['svn-url'], env.SVN_URL),
+    svnMessage: pick(args['svn-message'], env.SVN_MESSAGE),
+    svnNoTag: !!args['svn-no-tag'],
     // Custom Freemium Deploy Endpoint (uploads file + sets download file/version).
     apiUrl: pick(args['api-url'], env.FD_API_URL),
     apiToken: pick(args['api-token'], env.FD_API_TOKEN),
@@ -192,6 +212,30 @@ async function main() {
       const asset = await gh.uploadReleaseAsset(release, e.zip, cfg.githubToken);
       e.assetUrl = asset.browser_download_url;
       log(`↑ uploaded ${path.basename(e.zip)} -> ${asset.browser_download_url}`);
+    }
+  }
+
+  // --- WordPress.org SVN deploy (FREE build) ----------------------------------
+  if (cfg.svn) {
+    log('');
+    const stageRoot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'wpsvn-stage-'));
+    try {
+      const staged = buildVariantToDir({ path: sourceDir, variant: 'free', dir: stageRoot });
+      deployToSvn({
+        sourceDir: staged.dir,
+        slug: cfg.svnSlug || staged.slug,
+        type: staged.type,
+        version: staged.version || result.version,
+        user: cfg.svnUser,
+        password: cfg.svnPassword,
+        url: cfg.svnUrl,
+        message: cfg.svnMessage,
+        tag: !cfg.svnNoTag,
+        dryRun,
+        log,
+      });
+    } finally {
+      fsx.rmSync(stageRoot, { recursive: true, force: true });
     }
   }
 
