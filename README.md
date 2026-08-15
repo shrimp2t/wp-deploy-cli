@@ -189,6 +189,28 @@ registers those **existing** fields for the **existing** endpoint (no
 
 Use `--dry-run` to print the exact requests without sending them.
 
+## EDD sync via the companion plugin API (upload file + set download file)
+
+This is the full-featured path: it **uploads the built zip** and **sets it as the EDD
+download's file**, plus the SL version/changelog — in one call.
+
+1. Install `wordpress-plugin/freemium-deploy-endpoint.php` as a normal plugin on the EDD
+   site and activate it. It registers `POST /wp-json/freemium-deploy/v1/download`.
+2. Authenticate with either an Application Password or a shared token
+   (`define( 'FD_API_TOKEN', '…' )` in wp-config, or the `fd_api_token` filter).
+
+```bash
+deploy-version --path=. \
+  --api-url=https://shop.example.com/wp-json/freemium-deploy/v1/download \
+  --api-user=admin --api-app-password="xxxx xxxx …" \
+  --download-id=42 --download-free-id=43
+```
+
+The endpoint writes the file with `wp_upload_bits()` (filesystem — no attachment post) and
+sets `edd_download_files` + `_edd_sl_version` + `_edd_sl_changelog` via post meta. Verified
+end-to-end: build → upload → `edd_download_files` and `_edd_sl_version` set and read back.
+Use `--insecure` (or `FD_INSECURE_TLS=true`) for local self-signed Studio sites.
+
 ## EDD sync via WP-CLI (zero site-code — no plugin, no mu-plugin)
 
 Because core REST blocks protected meta, the simplest way to actually persist the SL

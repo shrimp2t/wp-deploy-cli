@@ -9,6 +9,7 @@ import * as gh from '../src/github.js';
 import { syncEdd } from '../src/edd.js';
 import { syncViaWpRest } from '../src/wp.js';
 import { syncViaWpCli } from '../src/wpcli.js';
+import { syncViaApi } from '../src/fdapi.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -56,6 +57,14 @@ GitHub (needs GITHUB_TOKEN or --github-token):
   --github-repo=OWNER/NAME   Fetch source from a release instead of --path
   --github-tag=TAG           Release tag to build (e.g. v1.2.3)
   --github-publish           Upload the built free/pro zips as assets of that release
+
+EDD sync via companion plugin API (uploads the zip + sets the download file):
+  --api-url=URL              Endpoint from wordpress-plugin/ (…/freemium-deploy/v1/download)
+  --api-token=TOKEN          Shared bearer token (FD_API_TOKEN on the site), OR
+  --api-user=USER --api-app-password=PASS   Application Password auth
+  --download-id=N            Pro download id
+  --download-free-id=N       Free download id
+  --insecure                 Allow self-signed TLS (local Studio sites)
 
 EDD sync via WP-CLI (zero site-code; writes protected SL meta directly):
   --wp-cli[=CMD]             Enable; CMD is the base command (default "wp", or "studio wp")
@@ -115,8 +124,18 @@ async function main() {
     wpCli: args['wp-cli'] !== undefined || envBool(env.WP_CLI),
     wpCliCommand: (typeof args['wp-cli'] === 'string' ? args['wp-cli'] : undefined) || env.WP_CLI_COMMAND || 'wp',
     wpPath: pick(args['wp-path'], env.WP_PATH),
+    // Custom Freemium Deploy Endpoint (uploads file + sets download file/version).
+    apiUrl: pick(args['api-url'], env.FD_API_URL),
+    apiToken: pick(args['api-token'], env.FD_API_TOKEN),
+    apiUser: pick(args['api-user'], env.FD_API_USER),
+    apiAppPassword: pick(args['api-app-password'], env.FD_API_APP_PASSWORD),
     out: pick(args.out, env.OUT_DIR),
   };
+
+  // Allow self-signed TLS for local Studio sites (opt-in).
+  if (args.insecure || envBool(env.FD_INSECURE_TLS)) {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  }
 
   const log = (m) => process.stdout.write(`${m}\n`);
   const dryRun = !!args['dry-run'];
@@ -185,8 +204,26 @@ async function main() {
   }));
   const changelog = readChangelog(result.source);
 
-  // Zero site-code: WP-CLI (writes protected SL meta directly; no plugin, no REST registration).
-  if (cfg.wpCli) {
+  // Custom API endpoint: uploads the zip and sets the download file + version/changelog.
+  if (cfg.apiUrl) {
+    log('');
+    const res = await syncViaApi({
+      endpoint: cfg.apiUrl,
+      token: cfg.apiToken,
+      user: cfg.apiUser,
+      appPassword: cfg.apiAppPassword,
+      downloadId: cfg.downloadId,
+      downloadFreeId: cfg.downloadFreeId,
+      version: result.version,
+      changelog,
+      files,
+      dryRun,
+    });
+    log(dryRun ? '[dry-run] API requests prepared' : `↔ API sync done (${res.length} download(s))`);
+    if (dryRun) log(JSON.stringify(res, null, 2));
+    else res.forEach((r) => log(`  ${r.variant} #${r.id} -> ${r.file}`));
+  } else if (cfg.wpCli) {
+    // Zero site-code: WP-CLI (writes protected SL meta directly; no plugin, no REST registration).
     log('');
     const res = syncViaWpCli({
       command: cfg.wpCliCommand,
