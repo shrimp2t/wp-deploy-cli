@@ -1,9 +1,10 @@
-# freemium-deploy
+# wp-deploy-cli
 
 Build **Free** and **Pro (premium)** distributables of a WordPress theme/plugin from a
 **single source** using inline premium markers. A Node/JS re-implementation of the
 FameThemes *Freemium Deployment* WordPress plugin — as a CLI (and library) that runs
-locally or in CI.
+locally or in CI. Ships with a companion WordPress plugin (`wordpress-plugin/`) that lets
+the CLI upload the build and set an EDD download's file + version.
 
 ```bash
 cd path/to/theme_or_plugin
@@ -14,10 +15,23 @@ deploy-version --path=.
 ## Install
 
 ```bash
-npm install -g freemium-deploy      # or: npx freemium-deploy --path=.
+npm install -g wp-deploy-cli        # provides the `deploy-version` command
 ```
 
 Requires Node ≥ 18. `unzip` must be on PATH only when fetching source from GitHub.
+
+## Build & release this repo
+
+```bash
+npm run build      # -> dist/wp-deploy-cli-<version>.zip  and
+                   #    dist/freemium-deploy-endpoint-<version>.zip
+npm run release    # build + push tag v<version> + create/update the GitHub release
+                   # (version comes from package.json; --dry-run to preview)
+```
+
+`npm run release` uses the `gh` CLI and the repo's `origin` remote (or `--repo=owner/name`).
+If a release for `v<version>` already exists it is updated (tag moved, assets re-uploaded);
+otherwise it is created.
 
 ## How it works
 

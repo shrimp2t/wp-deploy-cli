@@ -1,5 +1,5 @@
 {
-  "name": "freemium-deploy",
+  "name": "wp-deploy-cli",
   "version": "1.0.0",
   "description": "Build Free and Pro (premium) distributables of a WordPress theme/plugin from a single source using inline premium markers. CLI + library.",
   "type": "module",
@@ -13,10 +13,15 @@
   "files": [
     "bin",
     "src",
+    "wordpress-plugin",
+    "examples",
+    ".env.example",
     "README.md"
   ],
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "build": "node scripts/build.mjs",
+    "release": "node scripts/release.mjs"
   },
   "engines": {
     "node": ">=18"
