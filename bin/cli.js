@@ -6,6 +6,7 @@ import fsx from 'node:fs';
 import osx from 'node:os';
 import { build, buildVariantToDir } from '../src/index.js';
 import { deployToSvn } from '../src/svn.js';
+import { ghDownloadSource, ghRelease } from '../src/ghcli.js';
 import { readChangelog } from '../src/meta.js';
 import { loadEnv, envBool } from '../src/env.js';
 import * as gh from '../src/github.js';
@@ -65,10 +66,13 @@ WordPress.org SVN (deploy the FREE build to plugins/themes SVN):
   --svn-message=MSG          Commit message (default: "Release <version>")
   --svn-no-tag               (plugins) skip creating tags/<version>
 
-GitHub (needs GITHUB_TOKEN or --github-token):
-  --github-repo=OWNER/NAME   Fetch source from a release instead of --path
-  --github-tag=TAG           Release tag to build (e.g. v1.2.3)
-  --github-publish           Upload the built free/pro zips as assets of that release
+GitHub — via the gh CLI (run \`gh auth login\` once):
+  --github-publish           Create/update a GitHub release and upload the built zips
+  --github-repo=OWNER/NAME   Target repo (default: the git repo at --path)
+  --github-tag=TAG           Release tag (default: v<version>)
+  --no-fetch                 Build --path locally instead of downloading a release's source
+  (With both --github-repo and --github-tag, source is built FROM that release
+   unless --no-fetch; add --github-publish to upload the built zips back.)
 
 EDD sync via companion plugin API (uploads the zip + sets the download file):
   --api-url=URL              Endpoint from wordpress-plugin/ (…/wp-deploy/v1/download)
@@ -164,11 +168,9 @@ async function main() {
   let sourceDir = args.path ? String(args.path) : '.';
   let cleanupSource = null;
 
-  if (cfg.githubRepo) {
-    if (!cfg.githubTag) throw new Error('A release tag is required (--github-tag or GITHUB_TAG)');
-    if (!cfg.githubToken) throw new Error('GitHub access needs a token (GITHUB_TOKEN or --github-token=...)');
-    log(`↓ fetching ${cfg.githubRepo}@${cfg.githubTag} source`);
-    sourceDir = await gh.downloadSource(cfg.githubRepo, cfg.githubTag, cfg.githubToken);
+  if (cfg.githubRepo && cfg.githubTag && !args['no-fetch']) {
+    // Build from a release's source (downloaded via the gh CLI).
+    sourceDir = ghDownloadSource(cfg.githubRepo, cfg.githubTag, { log });
     cleanupSource = path.dirname(sourceDir);
   }
 
@@ -196,23 +198,25 @@ async function main() {
     log(`  ${v.padEnd(7)} ${e.slug}  ${e.files} files  ->  ${path.relative(process.cwd(), where) || where}`);
   }
 
-  // --- GitHub publish ---------------------------------------------------------
+  // --- GitHub release (via gh CLI): create/update release + upload built zips -
   if (cfg.githubPublish) {
-    if (!cfg.githubRepo || !cfg.githubTag) {
-      throw new Error('Publishing needs a repo and tag (--github-repo/--github-tag or GITHUB_REPO/GITHUB_TAG)');
-    }
-    if (!cfg.githubToken) throw new Error('Publishing needs a GitHub token');
     log('');
-    const release = await gh.getReleaseByTag(cfg.githubRepo, cfg.githubTag, cfg.githubToken);
-    release._repo = cfg.githubRepo;
-    for (const v of variants) {
-      const e = result[v];
-      if (!e || !e.zip) continue;
-      if (dryRun) { log(`[dry-run] would upload ${path.basename(e.zip)} to ${release._repo}@${cfg.githubTag}`); continue; }
-      const asset = await gh.uploadReleaseAsset(release, e.zip, cfg.githubToken);
-      e.assetUrl = asset.browser_download_url;
-      log(`↑ uploaded ${path.basename(e.zip)} -> ${asset.browser_download_url}`);
-    }
+    const ghTag = cfg.githubTag || (result.version ? `v${result.version}` : null);
+    if (!ghTag) throw new Error('GitHub publish needs a tag (--github-tag or a readable version)');
+    const assets = variants.map((v) => result[v] && result[v].zip).filter(Boolean);
+    const cl = readChangelog(result.source);
+    const notes = cl ? `Release ${ghTag}\n\n${cl}` : `Release ${ghTag}`;
+    const res = ghRelease({
+      repo: cfg.githubRepo,                       // optional; else the repo at --path
+      tag: ghTag,
+      title: ghTag,
+      notes,
+      assets,
+      cwd: path.resolve(String(args.path || '.')),
+      dryRun,
+      log,
+    });
+    log(`↑ ${assets.length} asset(s) → ${res.repo}${res.url ? ' (' + res.url + ')' : ' ' + ghTag}`);
   }
 
   // --- WordPress.org SVN deploy (FREE build) ----------------------------------

@@ -136,9 +136,11 @@ Build:
   --no-zip              Emit folders only
   --keep                Keep unzipped folders alongside the zips
 
-GitHub (needs GITHUB_TOKEN or --github-token):
-  --github-repo=OWNER/NAME --github-tag=TAG   Build from a release's source
-  --github-publish                            Upload built zips as release assets
+GitHub — via the gh CLI (run `gh auth login` once):
+  --github-publish                 Create/update a GitHub release + upload the built zips
+  --github-repo=OWNER/NAME         Target repo (default: the git repo at --path)
+  --github-tag=TAG                 Release tag (default: v<version>)
+  --no-fetch                       Build --path locally instead of a release's source
 
 EDD sync (needs a companion endpoint — see below):
   --edd-endpoint=URL --edd-token=SECRET
@@ -165,7 +167,7 @@ jobs:
           --github-tag=${{ github.event.release.tag_name }}
           --github-publish
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # the gh CLI reads this
 ```
 
 ## Library
