@@ -5,3 +5,4 @@ dist/
 
 # Local config with secrets — keep .env.example committed, .env private
 .env
+.env.*
