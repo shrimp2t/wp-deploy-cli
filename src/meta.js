@@ -16,9 +16,17 @@ function readTop(dir) {
     .map((d) => d.name);
 }
 
-/** Detect whether the source is a theme (has style.css) or a plugin. */
+/** Detect whether the source is a theme or a plugin. */
 export function detectType(sourceDir, configType) {
   if (configType === 'theme' || configType === 'plugin') return configType;
+  // A plugin is any root .php with a "Plugin Name:" header — this wins even when a
+  // stray style.css exists at the plugin root (which would otherwise look like a theme).
+  for (const f of readTop(sourceDir)) {
+    if (f.toLowerCase().endsWith('.php')) {
+      const content = fs.readFileSync(path.join(sourceDir, f), 'utf8');
+      if (/^[\s*#@/]*Plugin Name\s*:/im.test(content)) return 'plugin';
+    }
+  }
   if (fs.existsSync(path.join(sourceDir, 'style.css'))) return 'theme';
   return 'plugin';
 }

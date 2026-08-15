@@ -13,6 +13,37 @@ function isPremiumOnlyDir(relDirSlashed, premiumOnly) {
   return premiumOnly.some((e) => relDirSlashed === e || relDirSlashed.startsWith(e));
 }
 
+/** Load .distignore (or .svnignore) patterns from the source root — files never shipped. */
+function loadDistIgnore(sourceDir) {
+  for (const name of ['.distignore', '.svnignore']) {
+    const p = path.join(sourceDir, name);
+    if (fs.existsSync(p)) {
+      return fs.readFileSync(p, 'utf8').split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l && !l.startsWith('#'));
+    }
+  }
+  return [];
+}
+
+/** Match a relative posix path against one .distignore/.svnignore pattern. */
+function matchDistPattern(relPath, pattern) {
+  if (pattern.startsWith('/')) {                    // root-relative dir/file (incl. subtree)
+    const p = pattern.slice(1).replace(/\/$/, '');
+    return relPath === p || relPath.startsWith(p + '/');
+  }
+  const base = relPath.split('/').pop();            // basename match, at any depth
+  if (pattern.includes('*')) {
+    const re = new RegExp('^' + pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$');
+    return re.test(base);
+  }
+  return base === pattern;
+}
+
+function isDistIgnored(relPath, patterns) {
+  return patterns.some((pat) => matchDistPattern(relPath, pat));
+}
+
 function applyReplace(content, config, variant) {
   if (!config.replace.length) return content;
   const repl = variant === 'free' ? config.replace_free : config.replace_pro;
@@ -47,6 +78,7 @@ function transformFile(fullPath, variant, config, finder) {
 export function buildVariant({ sourceDir, destItemDir, variant, config }) {
   const finder = new Finder({ variant, key: config.function_premium || 'ft_is__premium' });
   const stats = { files: 0, dirs: 0 };
+  const distIgnore = loadDistIgnore(sourceDir);
   fs.mkdirSync(destItemDir, { recursive: true });
 
   function walk(relDir) {
@@ -56,6 +88,7 @@ export function buildVariant({ sourceDir, destItemDir, variant, config }) {
       if (name.startsWith('.')) continue;      // skip .git, .DS_Store, dot-anything
       if (name === 'deploy.json') continue;    // never ship the config
       const relPath = relDir ? path.posix.join(relDir, name) : name;
+      if (isDistIgnored(relPath, distIgnore)) continue;  // .distignore/.svnignore
 
       if (ent.isDirectory()) {
         const relDirSlashed = '/' + relPath + '/';
