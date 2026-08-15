@@ -21,7 +21,16 @@
   "scripts": {
     "test": "node --test",
     "build": "node scripts/build.mjs",
-    "release": "node scripts/release.mjs"
+    "release": "node scripts/release.mjs",
+    "prepublishOnly": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shrimp2t/wp-deploy-cli.git"
+  },
+  "homepage": "https://github.com/shrimp2t/wp-deploy-cli#readme",
+  "bugs": {
+    "url": "https://github.com/shrimp2t/wp-deploy-cli/issues"
   },
   "engines": {
     "node": ">=18"
