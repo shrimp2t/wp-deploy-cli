@@ -5,7 +5,9 @@ import path from 'node:path';
 function headerValue(content, field) {
   const re = new RegExp(`^[ \\t/*#@]*${field}\\s*:\\s*(.+)$`, 'im');
   const m = content.match(re);
-  return m ? m[1].trim().replace(/\s+$/, '') : '';
+  if (!m) return '';
+  // Strip a trailing comment/PHP close (e.g. "1.0.0 */") like WP's get_file_data.
+  return m[1].replace(/\s*(?:\*\/|\?>).*$/, '').trim();
 }
 
 function readTop(dir) {

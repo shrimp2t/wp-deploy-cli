@@ -103,6 +103,13 @@ Fully compatible with the original plugin's format:
 
 Version is read from `style.css` (theme) or the plugin header, and used in the zip names.
 
+**Prefer one config file?** Every `deploy.json` field can instead live in `.env` with a
+`DEPLOY_` prefix (arrays comma-separated) — e.g. `DEPLOY_TYPE=plugin`,
+`DEPLOY_FUNCTION_PREMIUM=my_plugin_is__premium`,
+`DEPLOY_PREMIUM_ONLY=/pro/,/includes/pro/`. Env values win over a `deploy.json` if both
+exist, so you can drop `deploy.json` entirely. (`deploy.json` still travels with the source,
+which is handy for CI that builds from a GitHub release.)
+
 ## Configuration (`.env`)
 
 Store the site/credentials you deploy to in a `.env` file — it's auto-loaded from the
