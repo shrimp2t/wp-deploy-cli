@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Freemium Deploy Endpoint
- * Description: A REST API that the `freemium-deploy` CLI calls to upload a built zip and
+ * Plugin Name: WP Deploy Endpoint
+ * Description: A REST API that the `wp-deploy-cli` tool calls to upload a built zip and
  *              set it as an EDD download's file + Software Licensing version/changelog.
  * Version: 1.0.0
  *

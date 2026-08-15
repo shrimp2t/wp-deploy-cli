@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Build distributables into ./dist :
- *   - dist/freemium-deploy-endpoint-<version>.zip  (WordPress plugin, foldered)
+ *   - dist/wp-deploy-endpoint-<version>.zip  (WordPress plugin, foldered)
  *   - dist/wp-deploy-cli-<version>.zip             (the CLI/library package)
  *
  * Version comes from package.json.
@@ -38,11 +38,11 @@ function makeZip(outFile, entries) {
 const abs = (p) => path.join(root, p);
 const human = (n) => (n > 1e6 ? (n / 1e6).toFixed(1) + 'M' : Math.round(n / 1024) + 'K');
 
-// --- 1) Plugin zip: top-level folder freemium-deploy-endpoint/ ---------------
-const pluginZip = path.join(dist, `freemium-deploy-endpoint-${version}.zip`);
+// --- 1) Plugin zip: top-level folder wp-deploy-endpoint/ ---------------------
+const pluginZip = path.join(dist, `wp-deploy-endpoint-${version}.zip`);
 fs.rmSync(pluginZip, { force: true });
 const pluginBytes = await makeZip(pluginZip, [
-  { src: abs('wordpress-plugin/freemium-deploy-endpoint.php'), dest: 'freemium-deploy-endpoint/freemium-deploy-endpoint.php' },
+  { src: abs('wordpress-plugin/wp-deploy-endpoint.php'), dest: 'wp-deploy-endpoint/wp-deploy-endpoint.php' },
 ]);
 
 // --- 2) CLI zip: top-level folder wp-deploy-cli/ -----------------------------

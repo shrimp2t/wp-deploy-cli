@@ -24,7 +24,7 @@ Requires Node ≥ 18. `unzip` must be on PATH only when fetching source from Git
 
 ```bash
 npm run build      # -> dist/wp-deploy-cli-<version>.zip  and
-                   #    dist/freemium-deploy-endpoint-<version>.zip
+                   #    dist/wp-deploy-endpoint-<version>.zip
 npm run release    # build + push tag v<version> + create/update the GitHub release
                    # (version comes from package.json; --dry-run to preview)
 ```
@@ -223,7 +223,7 @@ to print the svn commands without committing, and `--svn-no-tag` to skip tagging
 This is the full-featured path: it **uploads the built zip** and **sets it as the EDD
 download's file**, plus the SL version/changelog — in one call.
 
-1. Install `wordpress-plugin/freemium-deploy-endpoint.php` as a normal plugin on the EDD
+1. Install `wordpress-plugin/wp-deploy-endpoint.php` as a normal plugin on the EDD
    site and activate it. It registers `POST /wp-json/freemium-deploy/v1/download`.
 2. Authenticate with either an Application Password or a shared token
    (`define( 'FD_API_TOKEN', '…' )` in wp-config, or the `fd_api_token` filter).

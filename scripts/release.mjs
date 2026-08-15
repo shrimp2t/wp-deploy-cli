@@ -65,7 +65,7 @@ log(`${C.cyan}Releasing ${tag} -> ${repo} [branch ${branch}]${dryRun ? ' (dry-ru
 // --- build the zips ----------------------------------------------------------
 log('building dist zips…');
 execFileSync(process.execPath, [path.join(root, 'scripts', 'build.mjs')], { cwd: root, stdio: 'inherit' });
-const pluginZip = path.join(root, 'dist', `freemium-deploy-endpoint-${version}.zip`);
+const pluginZip = path.join(root, 'dist', `wp-deploy-endpoint-${version}.zip`);
 const cliZip = path.join(root, 'dist', `wp-deploy-cli-${version}.zip`);
 for (const z of [pluginZip, cliZip]) {
   if (!fs.existsSync(z)) { console.error(`${C.red}Missing build artifact: ${z}${C.off}`); process.exit(1); }
@@ -82,7 +82,7 @@ const notes = [
   '',
   'Assets:',
   `- \`${path.basename(cliZip)}\` — the wp-deploy-cli CLI/library`,
-  `- \`${path.basename(pluginZip)}\` — the Freemium Deploy Endpoint WordPress plugin`,
+  `- \`${path.basename(pluginZip)}\` — the WP Deploy Endpoint WordPress plugin`,
 ].join('\n');
 const notesFile = path.join(root, 'dist', `.notes-${version}.txt`);
 fs.writeFileSync(notesFile, notes);
