@@ -118,6 +118,18 @@ download's file with the SL version + changelog; `--svn` publishes the free buil
 If `GITHUB_PUBLISH=true` is in `.env` (or you pass `--github-publish`), the same run also
 creates/updates the GitHub release via the gh CLI and attaches both zips.
 
+### Pro-only products (no free version, no wp.org SVN)
+
+If a plugin/theme has **only a pro build** (no free/pro split), set `DEPLOY_SINGLE=true`
+(or pass `--single`). It produces a single package named by its slug (no `-pro` suffix),
+skips the free variant and SVN, and needs **no** `DEPLOY_FUNCTION_PREMIUM` / premium
+markers. See `examples/deploy.pro-only.env`:
+
+```bash
+deploy-version --path=.          # with DEPLOY_SINGLE=true in .env
+# -> dist/my-pro-plugin-vX.Y.Z.zip  → EDD (+ GitHub release if enabled)
+```
+
 ### Plugin instead of theme
 
 Identical flow — set `"type": "plugin"` in `deploy.json` (or omit it; a folder without

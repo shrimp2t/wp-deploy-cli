@@ -54,6 +54,9 @@ Build options:
   --out=DIR             Output directory (default: sibling "dist/" of the source)
   --free-only           Build only the free variant
   --pro-only            Build only the premium variant
+  --single              Pro-only product: one build named by its slug (no "-pro"),
+                        no free variant, no SVN, no premium markers needed
+                        (config: DEPLOY_SINGLE=true)
   --no-zip              Emit unzipped folders only
   --keep                Keep the unzipped build folders (in addition to zips)
 
@@ -148,6 +151,8 @@ async function main() {
     svnUrl: pick(args['svn-url'], env.SVN_URL),
     svnMessage: pick(args['svn-message'], env.SVN_MESSAGE),
     svnNoTag: !!args['svn-no-tag'],
+    // Pro-only ("single") product: one build, no free variant, no SVN, no markers needed.
+    single: !!args.single || envBool(env.DEPLOY_SINGLE),
     // Custom Freemium Deploy Endpoint (uploads file + sets download file/version).
     apiUrl: pick(args['api-url'], env.FD_API_URL),
     apiToken: pick(args['api-token'], env.FD_API_TOKEN),
@@ -177,13 +182,14 @@ async function main() {
   // --- variants ---------------------------------------------------------------
   let variants = ['free', 'premium'];
   if (args['free-only']) variants = ['free'];
-  if (args['pro-only']) variants = ['premium'];
+  if (args['pro-only'] || cfg.single) variants = ['premium'];
 
   // --- build ------------------------------------------------------------------
   const result = await build({
     path: sourceDir,
     out: cfg.out,
     variants,
+    single: cfg.single,
     zip: !args['no-zip'],
     keep: !!args.keep,
     log,
@@ -220,7 +226,10 @@ async function main() {
   }
 
   // --- WordPress.org SVN deploy (FREE build) ----------------------------------
-  if (cfg.svn) {
+  if (cfg.svn && cfg.single) {
+    log('\nnote: --single is pro-only — skipping WordPress.org SVN (there is no free build)');
+  }
+  if (cfg.svn && !cfg.single) {
     log('');
     const stageRoot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'wpsvn-stage-'));
     try {

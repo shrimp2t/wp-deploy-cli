@@ -59,7 +59,10 @@ export async function build(o) {
   const displayName = readName(sourceDir, type);
 
   const baseSlug = config.name || slugify(displayName) || path.basename(sourceDir);
-  const proSlug = config.premium_name || `${baseSlug}-${config.premium_suffix || 'premium'}`;
+  // Pro-only ("single") products keep the plain slug — no "-pro" suffix appended.
+  const proSlug = o.single
+    ? (config.premium_name || baseSlug)
+    : (config.premium_name || `${baseSlug}-${config.premium_suffix || 'premium'}`);
 
   const outDir = path.resolve(o.out || path.join(path.dirname(sourceDir), 'dist'));
   fs.mkdirSync(outDir, { recursive: true });
