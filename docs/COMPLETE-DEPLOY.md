@@ -90,7 +90,14 @@ EDD_DOWNLOAD_ID=42
 SVN_SLUG=my-theme
 SVN_USER=your-wporg-username
 SVN_PASSWORD=your-wporg-password
+
+# GitHub release (via gh CLI). GITHUB_PUBLISH is the config equivalent of --github-publish.
+GITHUB_PUBLISH=true
+# GITHUB_REPO=owner/my-theme   # optional; auto-detected from the project's git origin
 ```
+
+With `GITHUB_PUBLISH=true` in `.env`, every deploy also creates/updates the GitHub release
+and uploads the built zips — no `--github-publish` flag needed on the command line.
 
 ## 5. Deploy
 
@@ -108,8 +115,8 @@ deploy-version --path=. --svn
 download's file with the SL version + changelog; `--svn` publishes the free build to
 `trunk` + `tags/<version>` (plugin) or a `<version>/` folder (theme).
 
-Add `--github-publish` (with `GITHUB_REPO`/`GITHUB_TAG`/`GITHUB_TOKEN`) to also attach both
-zips to a GitHub release.
+If `GITHUB_PUBLISH=true` is in `.env` (or you pass `--github-publish`), the same run also
+creates/updates the GitHub release via the gh CLI and attaches both zips.
 
 ### Plugin instead of theme
 
