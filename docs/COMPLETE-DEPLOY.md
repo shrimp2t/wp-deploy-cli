@@ -141,7 +141,7 @@ targets `plugins.svn.wordpress.org/<slug>/` with `trunk` + `tags/<version>`.
 | Goal | Flag(s) |
 |---|---|
 | Build free + pro zips only | *(none)* |
-| Publish free to wp.org SVN | `--svn` (+ `SVN_*`) |
+| Publish free to wp.org SVN | set `SVN_SLUG`+`SVN_USER`+`SVN_PASSWORD` (auto-runs), or `--svn` |
 | Upload pro to EDD + set file/version | `--api-url` (+ `FD_API_*`, `EDD_DOWNLOAD_ID`) |
 | Attach zips to a GitHub release | `--github-publish` (+ `GITHUB_*`) |
 | Preview without changing anything | `--dry-run` |

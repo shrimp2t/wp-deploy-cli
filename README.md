@@ -218,9 +218,13 @@ Use `--dry-run` to print the exact requests without sending them.
 
 ## Deploy the free build to WordPress.org SVN
 
-Add `--svn` to publish the **free** variant to the wp.org SVN repo (plugins use
-`trunk` + `tags/<version>`; themes get a `<version>/` folder). Follows the
-FameThemes/10up deploy flow (checkout → rsync → `svn add`/`rm` → `svn commit`).
+Publish the **free** variant to the wp.org SVN repo (plugins use `trunk` +
+`tags/<version>`; themes get a `<version>/` folder). Follows the FameThemes/10up deploy
+flow (checkout → rsync → `svn add`/`rm` → `svn commit`).
+
+SVN runs **automatically** once `SVN_SLUG` + `SVN_USER` + `SVN_PASSWORD` are all set (in
+`.env` or as flags) — the same way the EDD sync runs when `FD_API_URL` is set. You can also
+force it with `--svn`.
 
 ```bash
 deploy-version --path=. --svn \

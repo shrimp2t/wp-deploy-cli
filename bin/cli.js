@@ -148,8 +148,13 @@ async function main() {
     wpCli: args['wp-cli'] !== undefined || envBool(env.WP_CLI),
     wpCliCommand: (typeof args['wp-cli'] === 'string' ? args['wp-cli'] : undefined) || env.WP_CLI_COMMAND || 'wp',
     wpPath: pick(args['wp-path'], env.WP_PATH),
-    // WordPress.org SVN deploy of the FREE build.
-    svn: !!args.svn || envBool(env.SVN),
+    // WordPress.org SVN deploy of the FREE build. Runs when --svn / SVN=true, OR
+    // when a complete SVN config is present (slug + user + password) — like how the
+    // EDD sync runs as soon as FD_API_URL is set.
+    svn: !!args.svn || envBool(env.SVN)
+      || !!((args['svn-slug'] || env.SVN_SLUG)
+        && (args['svn-user'] || env.SVN_USER)
+        && (args['svn-password'] || env.SVN_PASSWORD)),
     svnSlug: pick(args['svn-slug'], env.SVN_SLUG),
     svnUser: pick(args['svn-user'], env.SVN_USER),
     svnPassword: pick(args['svn-password'], env.SVN_PASSWORD),
