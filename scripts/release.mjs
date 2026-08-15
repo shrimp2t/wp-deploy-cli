@@ -12,9 +12,13 @@
  * Usage:
  *   npm run release
  *   npm run release -- --dry-run
- *   npm run release -- --repo=owner/name      (or set REPO=owner/name)
+ *   npm run release -- --repo=owner/name          (or set REPO=owner/name)
+ *   npm run release -- --repo=owner/name --public (first run: create a public repo)
  *
- * Requires the GitHub CLI (`gh`) authenticated, and a git remote (or --repo).
+ * Everything on the GitHub side goes through the GitHub CLI (`gh`). On the first
+ * release, if the repo doesn't exist yet it is created with `gh repo create`
+ * (private by default; --public to make it public) and wired up as `origin`.
+ * Requires `gh` authenticated (`gh auth login`).
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -46,18 +50,32 @@ function exists(cmd, args) {
 
 // --- prerequisites -----------------------------------------------------------
 if (!exists('gh', ['--version'])) { console.error(`${C.red}GitHub CLI (gh) is required${C.off}`); process.exit(1); }
-
-// --- resolve repo ------------------------------------------------------------
-let repo = repoArg;
-if (!repo) {
-  try { repo = capture('gh', ['repo', 'view', '--json', 'nameWithOwner', '-q', '.nameWithOwner']); }
-  catch {
-    console.error(`${C.red}No GitHub repo found.${C.off} Create one and add it as 'origin', e.g.:`);
-    console.error(`  gh repo create wp-deploy-cli --private --source=. --remote=origin --push`);
-    console.error(`…or pass --repo=owner/name`);
-    process.exit(1);
-  }
+if (!exists('gh', ['auth', 'status'])) {
+  console.error(`${C.red}gh is not authenticated.${C.off} Run: gh auth login`);
+  process.exit(1);
 }
+
+// --- resolve repo + ensure an 'origin' remote --------------------------------
+const hasRemote = exists('git', ['remote', 'get-url', 'origin']);
+let repo = repoArg;
+if (!repo && hasRemote) {
+  try { repo = capture('gh', ['repo', 'view', '--json', 'nameWithOwner', '-q', '.nameWithOwner']); } catch { /* not a gh repo yet */ }
+}
+if (!repo) {
+  console.error(`${C.red}No target repo.${C.off} Pass --repo=owner/name (or add an 'origin' remote).`);
+  process.exit(1);
+}
+
+// First release: create the GitHub repo via gh, or wire up the remote if missing.
+if (!exists('gh', ['repo', 'view', repo])) {
+  const vis = argv.includes('--public') ? '--public' : '--private';
+  log(`   creating GitHub repo ${repo} (${vis.slice(2)}) via gh`);
+  run('gh', ['repo', 'create', repo, vis, '--source=.', '--remote=origin', '--push']);
+} else if (!hasRemote) {
+  log(`   adding origin remote -> ${repo}`);
+  run('git', ['remote', 'add', 'origin', `https://github.com/${repo}.git`]);
+}
+
 const branch = capture('git', ['rev-parse', '--abbrev-ref', 'HEAD']);
 
 log(`${C.cyan}Releasing ${tag} -> ${repo} [branch ${branch}]${dryRun ? ' (dry-run)' : ''}${C.off}`);
