@@ -1,0 +1,17 @@
+{
+  "type": "theme",
+  "name": "my-theme",
+  "premium_name": "my-theme-pro",
+  "function_premium": "my_theme_is__premium",
+  "premium_suffix": "pro",
+  "replace": "SUFFIX",
+  "replace_pro": "Pro",
+  "replace_free": "",
+  "premium_only": [
+    "/premium/",
+    "/inc/typography-wp/"
+  ],
+  "premium_files": [
+    "/inc/widgets/widget-pro-only.php"
+  ]
+}

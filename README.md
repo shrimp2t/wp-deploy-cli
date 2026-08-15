@@ -12,6 +12,10 @@ deploy-version --path=.
 # -> dist/<slug>-free-vX.Y.Z.zip  and  dist/<slug>-pro-vX.Y.Z.zip
 ```
 
+**Deploying a complete theme/plugin** (free → wp.org SVN, pro → EDD, in one run):
+see **[docs/COMPLETE-DEPLOY.md](docs/COMPLETE-DEPLOY.md)** and the ready-to-edit
+`examples/deploy.env` + `examples/deploy.theme.json` / `examples/deploy.plugin.json`.
+
 ## Install
 
 ```bash
@@ -156,7 +160,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: npx freemium-deploy
+      - run: npx --package wp-deploy-cli deploy-version
           --github-repo=${{ github.repository }}
           --github-tag=${{ github.event.release.tag_name }}
           --github-publish
@@ -167,7 +171,7 @@ jobs:
 ## Library
 
 ```js
-import { build, Finder } from 'freemium-deploy';
+import { build, Finder } from 'wp-deploy-cli';
 
 const res = await build({ path: '.', variants: ['free', 'premium'] });
 // res.free.zip, res.premium.zip, res.version, ...
@@ -224,13 +228,13 @@ This is the full-featured path: it **uploads the built zip** and **sets it as th
 download's file**, plus the SL version/changelog — in one call.
 
 1. Install `wordpress-plugin/wp-deploy-endpoint.php` as a normal plugin on the EDD
-   site and activate it. It registers `POST /wp-json/freemium-deploy/v1/download`.
+   site and activate it. It registers `POST /wp-json/wp-deploy/v1/download`.
 2. Authenticate with either an Application Password or a shared token
    (`define( 'FD_API_TOKEN', '…' )` in wp-config, or the `fd_api_token` filter).
 
 ```bash
 deploy-version --path=. \
-  --api-url=https://shop.example.com/wp-json/freemium-deploy/v1/download \
+  --api-url=https://shop.example.com/wp-json/wp-deploy/v1/download \
   --api-user=admin --api-app-password="xxxx xxxx …" \
   --download-id=42 --download-free-id=43
 ```

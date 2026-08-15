@@ -7,7 +7,7 @@
  *
  * Install as a normal plugin (wp-content/plugins/) and activate it.
  *
- * Route:  POST /wp-json/freemium-deploy/v1/download
+ * Route:  POST /wp-json/wp-deploy/v1/download
  *
  * Auth (either is accepted):
  *   - A logged-in user who can edit the target download (Application Passwords work), OR
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 add_action( 'rest_api_init', function () {
-	register_rest_route( 'freemium-deploy/v1', '/download', array(
+	register_rest_route( 'wp-deploy/v1', '/download', array(
 		'methods'             => 'POST',
 		'callback'            => 'fd_api_handle_download',
 		'permission_callback' => 'fd_api_permission',

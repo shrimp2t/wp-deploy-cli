@@ -8,7 +8,7 @@ import path from 'node:path';
  * Auth: Bearer token (FD_API_TOKEN) or Basic (WP user + Application Password).
  *
  * @param {object} o
- * @param {string} o.endpoint      full URL, e.g. https://shop/wp-json/freemium-deploy/v1/download
+ * @param {string} o.endpoint      full URL, e.g. https://shop/wp-json/wp-deploy/v1/download
  * @param {string} [o.token]       shared bearer token
  * @param {string} [o.user] @param {string} [o.appPassword]  Basic-auth alternative
  * @param {number|string} [o.downloadId] @param {number|string} [o.downloadFreeId]

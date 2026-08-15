@@ -39,7 +39,7 @@ function pick(argVal, envVal) {
   return String(argVal);
 }
 
-const HELP = `freemium-deploy — build Free + Pro (premium) distributables from one source.
+const HELP = `wp-deploy-cli — build Free + Pro (premium) distributables from one source.
 
 Usage:
   cd path/to/theme_or_plugin
@@ -71,7 +71,7 @@ GitHub (needs GITHUB_TOKEN or --github-token):
   --github-publish           Upload the built free/pro zips as assets of that release
 
 EDD sync via companion plugin API (uploads the zip + sets the download file):
-  --api-url=URL              Endpoint from wordpress-plugin/ (…/freemium-deploy/v1/download)
+  --api-url=URL              Endpoint from wordpress-plugin/ (…/wp-deploy/v1/download)
   --api-token=TOKEN          Shared bearer token (FD_API_TOKEN on the site), OR
   --api-user=USER --api-app-password=PASS   Application Password auth
   --download-id=N            Pro download id

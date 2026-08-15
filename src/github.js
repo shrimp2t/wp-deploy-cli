@@ -9,7 +9,7 @@ function authHeaders(token) {
   return {
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
-    'User-Agent': 'freemium-deploy',
+    'User-Agent': 'wp-deploy-cli',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }

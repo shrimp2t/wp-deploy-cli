@@ -1,0 +1,17 @@
+{
+  "type": "plugin",
+  "name": "my-plugin",
+  "premium_name": "my-plugin-pro",
+  "function_premium": "my_plugin_is__premium",
+  "premium_suffix": "pro",
+  "replace": "",
+  "replace_pro": "",
+  "replace_free": "",
+  "premium_only": [
+    "/pro/",
+    "/includes/pro/"
+  ],
+  "premium_files": [
+    "/includes/class-pro-feature.php"
+  ]
+}

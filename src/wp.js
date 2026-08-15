@@ -25,7 +25,7 @@ async function wpFetch(url, { auth, method = 'GET', body } = {}) {
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      'User-Agent': 'freemium-deploy',
+      'User-Agent': 'wp-deploy-cli',
       ...(auth ? { Authorization: auth } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
