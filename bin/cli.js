@@ -44,13 +44,13 @@ const HELP = `wp-deploy-cli — build Free + Pro (premium) distributables from o
 
 Usage:
   cd path/to/theme_or_plugin
-  deploy-version --path=.
+  deploy-version                 # --path defaults to the current directory
 
 Config: a .env file in the current directory is auto-loaded and used as defaults.
 See .env.example. Flags override .env; real environment variables win in CI.
 
 Build options:
-  --path=DIR            Source theme/plugin directory (default: current dir ".")
+  --path=DIR            Source theme/plugin directory (optional; default: current dir)
   --out=DIR             Output directory (default: sibling "dist/" of the source)
   --free-only           Build only the free variant
   --pro-only            Build only the premium variant

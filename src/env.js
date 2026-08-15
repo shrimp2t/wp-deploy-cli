@@ -22,9 +22,18 @@ export function loadEnv(dir = process.cwd()) {
     if (eq === -1) continue;
     const key = line.slice(0, eq).trim();
     if (!key) continue;
-    let val = line.slice(eq + 1).trim();
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
+    let val = line.slice(eq + 1).replace(/^\s+/, '');
+    if (val[0] === '"' || val[0] === "'") {
+      // Quoted: take the contents up to the matching closing quote (trailing text ignored).
+      const q = val[0];
+      const end = val.indexOf(q, 1);
+      val = end === -1 ? val.slice(1) : val.slice(1, end);
+    } else {
+      // Unquoted: strip an inline comment ( # … to end of line) and surrounding space.
+      const hash = val.search(/\s#/);
+      if (hash !== -1) val = val.slice(0, hash);
+      else if (val[0] === '#') val = '';
+      val = val.trim();
     }
     loaded[key] = val;
     if (!(key in process.env)) process.env[key] = val;

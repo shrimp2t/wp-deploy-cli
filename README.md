@@ -8,7 +8,7 @@ the CLI upload the build and set an EDD download's file + version.
 
 ```bash
 cd path/to/theme_or_plugin
-deploy-version --path=.
+deploy-version                 # --path is optional; defaults to the current directory
 # -> dist/<slug>-free-vX.Y.Z.zip  and  dist/<slug>-pro-vX.Y.Z.zip
 ```
 
