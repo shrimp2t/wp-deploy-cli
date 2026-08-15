@@ -1,6 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+const API_ROUTE = '/wp-json/wp-deploy/v1/download';
+
+/** Accept a bare site URL (append the route) or a full endpoint URL (use as-is). */
+export function resolveApiEndpoint(url) {
+  if (!url) return url;
+  const u = String(url).replace(/\/+$/, '');
+  return u.includes('/wp-json/') ? u : `${u}${API_ROUTE}`;
+}
+
 /**
  * Upload built zips to the Freemium Deploy Endpoint (wordpress-plugin/) which sets
  * each EDD download's file + SL version/changelog. One request per download.
@@ -8,7 +17,9 @@ import path from 'node:path';
  * Auth: Bearer token (FD_API_TOKEN) or Basic (WP user + Application Password).
  *
  * @param {object} o
- * @param {string} o.endpoint      full URL, e.g. https://shop/wp-json/wp-deploy/v1/download
+ * @param {string} o.endpoint      site base URL (e.g. https://shop.example.com) — the
+ *                                 /wp-json/wp-deploy/v1/download route is appended; a full
+ *                                 endpoint URL is also accepted as-is
  * @param {string} [o.token]       shared bearer token
  * @param {string} [o.user] @param {string} [o.appPassword]  Basic-auth alternative
  * @param {number|string} [o.downloadId] @param {number|string} [o.downloadFreeId]
@@ -18,6 +29,7 @@ import path from 'node:path';
  * @returns {Promise<object[]>}
  */
 export async function syncViaApi(o) {
+  const endpoint = resolveApiEndpoint(o.endpoint);
   const targets = [
     { id: o.downloadId, variant: 'premium', fileId: o.fileId },
     { id: o.downloadFreeId, variant: 'free', fileId: o.fileFreeId },
@@ -41,7 +53,7 @@ export async function syncViaApi(o) {
     if (o.dryRun) {
       results.push({
         variant: t.variant, id: t.id, file_id: t.fileId != null ? t.fileId : 0,
-        request: { endpoint: o.endpoint, download_id: t.id, file_id: t.fileId, version: o.version, file: name, file_url: file && file.url },
+        request: { endpoint, download_id: t.id, file_id: t.fileId, version: o.version, file: name, file_url: file && file.url },
       });
       continue;
     }
@@ -62,7 +74,7 @@ export async function syncViaApi(o) {
       throw new Error(`No zip or url available for ${t.variant} (build with zips or pass a URL)`);
     }
 
-    const res = await fetch(o.endpoint, { method: 'POST', headers: authHeader(), body: form });
+    const res = await fetch(endpoint, { method: 'POST', headers: authHeader(), body: form });
     let json = {};
     try { json = await res.json(); } catch { /* non-json */ }
     if (!res.ok || json.ok === false) {

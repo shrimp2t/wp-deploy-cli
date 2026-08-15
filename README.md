@@ -243,7 +243,7 @@ download's file**, plus the SL version/changelog — in one call.
 
 ```bash
 deploy-version --path=. \
-  --api-url=https://shop.example.com/wp-json/wp-deploy/v1/download \
+  --api-url=https://shop.example.com \
   --api-user=admin --api-app-password="xxxx xxxx …" \
   --download-id=42 --download-free-id=43
 ```

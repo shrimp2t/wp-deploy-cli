@@ -82,7 +82,7 @@ Copy `examples/deploy.env` into the source folder as `.env` and fill it in (it i
 auto-loaded). Minimal shape:
 
 ```dotenv
-FD_API_URL=https://shop.example.com/wp-json/wp-deploy/v1/download
+FD_API_URL=https://shop.example.com
 FD_API_USER=admin
 FD_API_APP_PASSWORD=xxxx xxxx xxxx xxxx xxxx xxxx
 EDD_DOWNLOAD_ID=42
