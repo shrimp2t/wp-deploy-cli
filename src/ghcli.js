@@ -3,6 +3,24 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
+/**
+ * Move an existing tag to the current commit and push it — only when `cwd` is a git
+ * repo whose `origin` is the target repo (so we never force-move tags on the wrong repo).
+ */
+function updateTag(repo, tag, cwd, dryRun, log) {
+  if (!cwd) return;
+  let origin;
+  try { origin = execFileSync('git', ['-C', cwd, 'remote', 'get-url', 'origin'], { encoding: 'utf8' }).trim(); }
+  catch { return; } // not a git repo
+  if (!origin.replace(/\.git$/, '').includes(repo)) return; // different repo → leave tags alone
+  if (dryRun) { log(`   [dry-run] git tag -f ${tag} && git push -f origin refs/tags/${tag}`); return; }
+  try {
+    execFileSync('git', ['-C', cwd, 'tag', '-f', tag], { stdio: 'ignore' });
+    execFileSync('git', ['-C', cwd, 'push', '-f', 'origin', `refs/tags/${tag}`], { stdio: 'ignore' });
+    log(`   tag ${tag} moved to current commit`);
+  } catch (e) { log(`   (tag ${tag} not moved: ${String(e.message).split('\n')[0]})`); }
+}
+
 /** True if `gh <args>` exits 0. */
 function ghOk(args, cwd) {
   try { execFileSync('gh', args, { cwd, stdio: 'ignore' }); return true; }
@@ -76,6 +94,7 @@ export function ghRelease(o) {
     const exists = ghOk(['release', 'view', o.tag, ...R]);
     if (exists) {
       log(`   release ${o.tag} exists → updating (${repo})`);
+      updateTag(repo, o.tag, o.cwd, o.dryRun, log);
       run(['release', 'edit', o.tag, ...R, '--title', o.title || o.tag, '--notes-file', notesFile]);
       if (assets.length) run(['release', 'upload', o.tag, ...assets, ...R, '--clobber']);
     } else {
