@@ -19,8 +19,8 @@ import path from 'node:path';
  */
 export async function syncViaApi(o) {
   const targets = [
-    { id: o.downloadId, variant: 'premium' },
-    { id: o.downloadFreeId, variant: 'free' },
+    { id: o.downloadId, variant: 'premium', fileId: o.fileId },
+    { id: o.downloadFreeId, variant: 'free', fileId: o.fileFreeId },
   ].filter((t) => t.id);
 
   const authHeader = () => {
@@ -40,8 +40,8 @@ export async function syncViaApi(o) {
 
     if (o.dryRun) {
       results.push({
-        variant: t.variant, id: t.id,
-        request: { endpoint: o.endpoint, download_id: t.id, version: o.version, file: name, file_url: file && file.url },
+        variant: t.variant, id: t.id, file_id: t.fileId != null ? t.fileId : 0,
+        request: { endpoint: o.endpoint, download_id: t.id, file_id: t.fileId, version: o.version, file: name, file_url: file && file.url },
       });
       continue;
     }
@@ -49,6 +49,7 @@ export async function syncViaApi(o) {
     const form = new FormData();
     form.set('download_id', String(t.id));
     form.set('variant', t.variant);
+    if (t.fileId != null && t.fileId !== '') form.set('file_id', String(t.fileId));
     if (o.version) form.set('version', o.version);
     if (o.changelog) form.set('changelog', o.changelog);
     if (zipPath && fs.existsSync(zipPath)) {

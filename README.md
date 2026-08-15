@@ -248,6 +248,10 @@ deploy-version --path=. \
   --download-id=42 --download-free-id=43
 ```
 
+For a download with several files, pick which slot to write with `--file-id` /
+`--file-free-id` (or `EDD_FILE_ID` / `EDD_FILE_FREE_ID`); default is `0` and other files
+on the download are preserved.
+
 The endpoint writes the file with `wp_upload_bits()` (filesystem — no attachment post) and
 sets `edd_download_files` + `_edd_sl_version` + `_edd_sl_changelog` via post meta. Verified
 end-to-end: build → upload → `edd_download_files` and `_edd_sl_version` set and read back.

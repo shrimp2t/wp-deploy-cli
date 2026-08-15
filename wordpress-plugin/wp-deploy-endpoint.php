@@ -77,6 +77,10 @@ function fd_api_handle_download( WP_REST_Request $request ) {
 	$changelog = wp_kses_post( (string) $request->get_param( 'changelog' ) );
 	$file_name = sanitize_file_name( (string) $request->get_param( 'file_name' ) );
 
+	// Which download-file slot (index/ID) to write. Default 0; other files are kept.
+	$file_id_param = $request->get_param( 'file_id' );
+	$file_id = ( null === $file_id_param || '' === $file_id_param ) ? 0 : absint( $file_id_param );
+
 	// --- obtain the file bytes: multipart upload OR a URL to download ---------
 	$contents = null;
 	$files    = $request->get_file_params();
@@ -121,8 +125,8 @@ function fd_api_handle_download( WP_REST_Request $request ) {
 	if ( ! is_array( $existing ) ) {
 		$existing = array();
 	}
-	$existing[0] = array(
-		'index'          => '0',
+	$existing[ $file_id ] = array(
+		'index'          => (string) $file_id,
 		'attachment_id'  => 0,
 		'thumbnail_size' => false,
 		'name'           => $file_name,
@@ -142,6 +146,7 @@ function fd_api_handle_download( WP_REST_Request $request ) {
 	return new WP_REST_Response( array(
 		'ok'          => true,
 		'download_id' => $download_id,
+		'file_id'     => $file_id,
 		'file'        => $upload['url'],
 		'file_path'   => $upload['file'],
 		'version'     => $version,

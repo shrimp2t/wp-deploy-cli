@@ -83,6 +83,8 @@ EDD sync via companion plugin API (uploads the zip + sets the download file):
   --api-user=USER --api-app-password=PASS   Application Password auth
   --download-id=N            Pro download id
   --download-free-id=N       Free download id
+  --file-id=N                Download-file slot to write on the pro download (default 0)
+  --file-free-id=N           Download-file slot on the free download (default 0)
   --insecure                 Allow self-signed TLS (local Studio sites)
 
 EDD sync via WP-CLI (zero site-code; writes protected SL meta directly):
@@ -134,6 +136,9 @@ async function main() {
     eddToken: pick(args['edd-token'], env.EDD_TOKEN),
     downloadId: pick(args['download-id'], env.EDD_DOWNLOAD_ID),
     downloadFreeId: pick(args['download-free-id'], env.EDD_DOWNLOAD_FREE_ID),
+    // Which download-file slot (ID/index) to write on each download (default 0).
+    fileId: pick(args['file-id'], env.EDD_FILE_ID),
+    fileFreeId: pick(args['file-free-id'], env.EDD_FILE_FREE_ID),
     // WordPress core REST (Application Passwords) — the "existing API" path.
     wpUrl: pick(args['wp-url'], env.WP_URL),
     wpUser: pick(args['wp-user'], env.WP_USER),
@@ -271,6 +276,8 @@ async function main() {
       appPassword: cfg.apiAppPassword,
       downloadId: cfg.downloadId,
       downloadFreeId: cfg.downloadFreeId,
+      fileId: cfg.fileId,
+      fileFreeId: cfg.fileFreeId,
       version: result.version,
       changelog,
       files,
