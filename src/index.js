@@ -96,7 +96,9 @@ export async function build(o) {
 
       if (doZip) {
         const vtag = version ? `-v${version}` : '';
-        const zipName = variant === 'free'
+        // The "-free" suffix only disambiguates from a pro zip; when there is no pro
+        // build (free-only), name it cleanly as <slug>-v<version>.zip.
+        const zipName = variant === 'free' && variants.includes('premium')
           ? `${itemSlug}-free${vtag}.zip`
           : `${itemSlug}${vtag}.zip`;
         const zipPath = path.join(outDir, zipName);
